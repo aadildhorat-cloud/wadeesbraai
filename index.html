@@ -60,6 +60,10 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="format-detection" content="telephone=yes">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<!-- Preload critical resources -->
+<link rel="preload" href="js/products-wadeesbraai.js" as="script">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="dns-prefetch" href="https://script.google.com">
 <!-- ========== PWA / APP ========== -->
 <meta name="application-name" content="Wadee's Braai">
 <meta name="apple-mobile-web-app-title" content="Wadee's Braai">
@@ -1167,19 +1171,32 @@ function setFilter(filter) {
   filterAndRender();
 }
 
-// ===== 🚀 SPEED OPTIMIZATION: Enhanced renderDynamicCategories with LocalStorage =====
+// ===== 🚀 ULTRA-FAST RENDERING WITH CACHING =====
 function renderDynamicCategories() {
   const products = window.WADEESBRAAI_PRODUCTS || [];
   const menuContainer = document.getElementById('dynamicMenuCategories');
   const filterChips = document.getElementById('filterChips');
   const container = document.getElementById('dynamicCategoriesContainer');
+  
+  // Check cache first
+  const cachedHTML = localStorage.getItem('wadeesbraai_rendered_html_v2');
+  const cachedTime = localStorage.getItem('wadeesbraai_cache_time');
+  const now = Date.now();
+  
+  // Use cached HTML if less than 5 minutes old
+  if (cachedHTML && cachedTime && (now - parseInt(cachedTime)) < 300000) {
+    container.innerHTML = cachedHTML;
+    console.log(' Loaded from HTML cache (instant!)');
+    renderCategoriesMenu(products, menuContainer, filterChips);
+    return;
+  }
+  
   if (products.length === 0) {
     const cached = localStorage.getItem('wadeesbraai_products_cache_v1');
     if (cached) {
       try {
         const cachedProducts = JSON.parse(cached);
         if (cachedProducts.length > 0) {
-          console.log('📦 Loaded Wadee\'s Braai products from localStorage cache');
           window.WADEESBRAAI_PRODUCTS = cachedProducts;
           renderCategoriesUI(cachedProducts, menuContainer, filterChips, container);
           return;
@@ -1189,27 +1206,21 @@ function renderDynamicCategories() {
     container.innerHTML = '<p style="text-align:center;padding:3rem;color:#64748b;">No products available</p>';
     return;
   }
-  try {
-    localStorage.setItem('wadeesbraai_products_cache_v1', JSON.stringify(products));
-    console.log('💾 Saved Wadee\'s Braai products to localStorage cache');
-  } catch(e) {}
-  renderCategoriesUI(products, menuContainer, filterChips, container);
-  console.log(`✅ Generated ${Object.keys(getCategories(products)).length} category sections dynamically`);
+  
+  // Use requestIdleCallback for non-blocking render
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      renderCategoriesUI(products, menuContainer, filterChips, container);
+    });
+  } else {
+    setTimeout(() => {
+      renderCategoriesUI(products, menuContainer, filterChips, container);
+    }, 0);
+  }
 }
 
-function getCategories(products) {
-  const categories = {};
-  products.forEach(product => {
-    const catSlug = product.categorySlug || 'uncategorized';
-    if (!categories[catSlug]) {
-      categories[catSlug] = { slug: catSlug, name: formatCategoryName(catSlug), icon: getCategoryIcon(catSlug), products: [] };
-    }
-    categories[catSlug].products.push(product);
-  });
-  return categories;
-}
-
-function renderCategoriesUI(products, menuContainer, filterChips, container) {
+// Render menu and filters only
+function renderCategoriesMenu(products, menuContainer, filterChips) {
   const categories = getCategories(products);
   let menuHTML = '';
   Object.keys(categories).forEach(catSlug => {
@@ -1224,7 +1235,6 @@ function renderCategoriesUI(products, menuContainer, filterChips, container) {
     chipsHTML += `<button class="filter-chip" data-filter="${catSlug}" onclick="setFilter('${catSlug}')"><i class="fas ${cat.icon}" aria-hidden="true"></i> ${cat.name}</button>`;
   });
   filterChips.innerHTML = chipsHTML;
-  filterAndRender();
 }
 
 function filterAndRender() {
@@ -1606,7 +1616,7 @@ document.addEventListener('DOMContentLoaded', () => {
       preloader.classList.add('fade-out');
       setTimeout(function() { preloader.style.display = 'none'; }, 500);
     }
-  }, 2000);
+  }, 2500);
   
 });
 // Swiper - load dynamically with error handling
