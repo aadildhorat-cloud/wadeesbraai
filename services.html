@@ -1742,10 +1742,41 @@
 
         counters.forEach(counter => observer.observe(counter));
 
-        // Form Submission
+               // Form Submission
         document.getElementById('quoteForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            alert('Thank you for your inquiry! We will contact you shortly.');
+            e.preventDefault(); // Prevents the page from refreshing
+            
+            // 1. Gather values from the form inputs
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const guests = document.getElementById('guests').value;
+            const date = document.getElementById('date').value;
+            const location = document.getElementById('location').value;
+            const message = document.getElementById('message').value;
+            
+            // 2. Construct the WhatsApp message
+            const whatsappMessage = `*New Quote Request - Wadee's Braai* 🍖
+
+*Name:* ${name}
+*Email:* ${email}
+*Phone:* ${phone}
+*Number of Guests:* ${guests}
+*Event Date:* ${date}
+*Location:* ${location}
+*Message:* ${message || 'No additional message'}`;
+            
+            // 3. Set the WhatsApp number (International format without '+' or spaces)
+            const whatsappNumber = "27723706786";
+            
+            // 4. Encode the text and build the URL
+            const encodedMessage = encodeURIComponent(whatsappMessage);
+            const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+            
+            // 5. Open WhatsApp in a new tab
+            window.open(whatsappURL, '_blank');
+            
+            // 6. Clear the form fields after opening WhatsApp
             e.target.reset();
         });
 
